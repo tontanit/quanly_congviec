@@ -169,54 +169,5 @@ include '../../includes/header.php';
         </div>
     </div>
 </div>
-<div class="card shadow-sm border-0 mt-4">
-    <div class="card-body">
-        <h5 class="fw-bold mb-3"><i class="fa fa-comments me-2"></i>Trao đổi & Lịch sử</h5>
 
-        <form action="process_comment.php" method="POST" class="mb-4">
-            <input type="hidden" name="cong_viec_id" value="<?= $id ?>">
-            <div class="input-group">
-                <textarea name="noi_dung" class="form-control" placeholder="Nhập nội dung trao đổi hoặc cập nhật tiến độ..." required></textarea>
-                <button type="submit" class="btn btn-primary px-4">Gửi</button>
-            </div>
-        </form>
-
-        <hr>
-
-        <div class="comment-list">
-            <?php
-            $sql_cm = "SELECT bl.*, u.ho_ten FROM binh_luan bl 
-                       JOIN users u ON bl.user_id = u.id 
-                       WHERE bl.cong_viec_id = $id 
-                       ORDER BY bl.created_at DESC";
-            $res_cm = mysqli_query($conn, $sql_cm);
-
-            while ($cm = mysqli_fetch_assoc($res_cm)):
-            ?>
-                <div class="d-flex mb-3">
-                    <div class="flex-shrink-0">
-                        <div class="bg-light rounded-circle p-2 text-center" style="width: 45px;">
-                            <i class="fa fa-user text-secondary"></i>
-                        </div>
-                    </div>
-                    <div class="flex-grow-1 ms-3 p-3 bg-light rounded shadow-sm">
-                        <div class="d-flex justify-content-between border-bottom pb-1 mb-2">
-                            <span class="fw-bold text-primary small"><?= $cm['ho_ten'] ?></span>
-                            <span class="text-muted small" style="font-size: 0.75rem;">
-                                <?= date('H:i d/m/Y', strtotime($cm['created_at'])) ?>
-                            </span>
-                        </div>
-                        <div class="text-dark small">
-                            <?= nl2br(htmlspecialchars($cm['noi_dung'])) ?>
-                        </div>
-                    </div>
-                </div>
-            <?php endwhile; ?>
-
-            <?php if (mysqli_num_rows($res_cm) == 0): ?>
-                <p class="text-center text-muted fst-italic small">Chưa có trao đổi nào cho công việc này.</p>
-            <?php endif; ?>
-        </div>
-    </div>
-</div>
 <?php include '../../includes/footer.php'; ?>

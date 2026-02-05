@@ -1,19 +1,15 @@
 <?php
 require_once '../../config/database.php';
-if (!isset($_SESSION['user_id'])) {
-    header("Location: ../../login.php");
-    exit();
-}
+if (!isset($_SESSION['user_id'])) { header("Location: ../../login.php"); exit(); }
 
-$id = (int)$_GET['id'];
-$current_user_id = $_SESSION['user_id']; // Lấy ID người đang thực hiện chỉnh sửa
+$id = $_GET['id'];
 
-// 1. Lấy dữ liệu cũ để đổ vào Form và để so sánh log
+// 1. Lấy dữ liệu cũ để đổ vào Form
 $sql_old = "SELECT * FROM cong_viec WHERE id = $id";
 $res_old = mysqli_query($conn, $sql_old);
 $task = mysqli_fetch_assoc($res_old);
 
-// 2. Lấy danh sách nhân viên
+// 2. Lấy danh sách nhân viên để chọn lại nếu cần
 $sql_users = "SELECT id, ho_ten FROM users WHERE role = 'nguoi_thuc_hien'";
 $result_users = mysqli_query($conn, $sql_users);
 
@@ -26,22 +22,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $han_hoan_thanh = $_POST['han_hoan_thanh'];
     $trang_thai = $_POST['trang_thai'];
 
-    // --- BẮT ĐẦU LOGIC GHI LOG TỰ ĐỘNG ---
-    $log_messages = [];
-
-    // Kiểm tra nếu thay đổi trạng thái
-    if ($trang_thai !== $task['trang_thai']) {
-        $log_messages[] = "📢 Hệ thống: Trạng thái thay đổi từ [" . $task['trang_thai'] . "] thành [" . $trang_thai . "].";
-    }
-
-    // Kiểm tra nếu thay đổi hạn hoàn thành
-    if ($han_hoan_thanh !== $task['han_hoan_thanh']) {
-        $old_date = date('d/m/Y', strtotime($task['han_hoan_thanh']));
-        $new_date = date('d/m/Y', strtotime($han_hoan_thanh));
-        $log_messages[] = "📅 Hệ thống: Đã thay đổi hạn chót từ $old_date thành $new_date.";
-    }
-    // --- KẾT THÚC LOGIC GHI LOG ---
-
     $sql_update = "UPDATE cong_viec SET 
                    ten_cong_viec = '$ten_cv', 
                    mo_ta = '$mo_ta', 
@@ -52,14 +32,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                    WHERE id = $id";
 
     if (mysqli_query($conn, $sql_update)) {
-        // Nếu có thay đổi quan trọng, ghi vào bảng binh_luan làm lịch sử
-        foreach ($log_messages as $msg) {
-            $msg_escaped = mysqli_real_escape_string($conn, $msg);
-            $sql_log = "INSERT INTO binh_luan (cong_viec_id, user_id, noi_dung) 
-                        VALUES ($id, $current_user_id, '$msg_escaped')";
-            mysqli_query($conn, $sql_log);
-        }
-
         echo "<script>alert('Cập nhật thành công!'); window.location.href='list.php';</script>";
     } else {
         echo "Lỗi: " . mysqli_error($conn);
@@ -77,19 +49,19 @@ include '../../includes/header.php';
         <form method="POST">
             <div class="mb-3">
                 <label class="form-label">Tên công việc</label>
-                <input type="text" name="ten_cong_viec" class="form-control" value="<?php echo htmlspecialchars($task['ten_cong_viec']); ?>" required>
+                <input type="text" name="ten_cong_viec" class="form-control" value="<?php echo $task['ten_cong_viec']; ?>" required>
             </div>
             <div class="mb-3">
                 <label class="form-label">Mô tả chi tiết</label>
-                <textarea name="mo_ta" class="form-control" rows="3"><?php echo htmlspecialchars($task['mo_ta']); ?></textarea>
+                <textarea name="mo_ta" class="form-control" rows="3"><?php echo $task['mo_ta']; ?></textarea>
             </div>
             <div class="row">
                 <div class="col-md-6 mb-3">
                     <label class="form-label">Người thực hiện</label>
                     <select name="nguoi_thuc_hien_id" class="form-select" required>
-                        <?php while ($user = mysqli_fetch_assoc($result_users)): ?>
+                        <?php while($user = mysqli_fetch_assoc($result_users)): ?>
                             <option value="<?php echo $user['id']; ?>" <?php echo ($user['id'] == $task['nguoi_thuc_hien_id']) ? 'selected' : ''; ?>>
-                                <?php echo htmlspecialchars($user['ho_ten']); ?>
+                                <?php echo $user['ho_ten']; ?>
                             </option>
                         <?php endwhile; ?>
                     </select>
@@ -97,10 +69,10 @@ include '../../includes/header.php';
                 <div class="col-md-6 mb-3">
                     <label class="form-label">Trạng thái</label>
                     <select name="trang_thai" class="form-select">
-                        <option value="Chưa thực hiện" <?php if ($task['trang_thai'] == 'Chưa thực hiện') echo 'selected'; ?>>Chưa thực hiện</option>
-                        <option value="Đang thực hiện" <?php if ($task['trang_thai'] == 'Đang thực hiện') echo 'selected'; ?>>Đang thực hiện</option>
-                        <option value="Đã hoàn thành" <?php if ($task['trang_thai'] == 'Đã hoàn thành') echo 'selected'; ?>>Đã hoàn thành</option>
-                        <option value="Quá hạn" <?php if ($task['trang_thai'] == 'Quá hạn') echo 'selected'; ?>>Quá hạn</option>
+                        <option value="Chưa thực hiện" <?php if($task['trang_thai'] == 'Chưa thực hiện') echo 'selected'; ?>>Chưa thực hiện</option>
+                        <option value="Đang thực hiện" <?php if($task['trang_thai'] == 'Đang thực hiện') echo 'selected'; ?>>Đang thực hiện</option>
+                        <option value="Đã hoàn thành" <?php if($task['trang_thai'] == 'Đã hoàn thành') echo 'selected'; ?>>Đã hoàn thành</option>
+                        <option value="Quá hạn" <?php if($task['trang_thai'] == 'Quá hạn') echo 'selected'; ?>>Quá hạn</option>
                     </select>
                 </div>
             </div>
