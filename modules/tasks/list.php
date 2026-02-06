@@ -158,7 +158,8 @@ include '../../includes/header.php';
                 <div class="col-md-5">
                     <div class="input-group">
                         <span class="input-group-text bg-white border-end-0"><i class="fa fa-search text-muted"></i></span>
-                        <input type="text" name="keyword" class="form-control border-start-0" placeholder="Tìm tên hoặc mô tả..." value="<?= htmlspecialchars($keyword) ?>">
+                        <input type="text" id="search-input" name="keyword" class="form-control border-start-0"
+                            placeholder="Tìm tên hoặc mô tả..." value="<?= htmlspecialchars($keyword) ?>">
                     </div>
                 </div>
                 <div class="col-md-4">
@@ -285,5 +286,44 @@ include '../../includes/header.php';
         </nav>
     <?php endif; ?>
 </div>
+<script>
+    $(document).ready(function() {
+        var searchTimer;
+
+        // Hàm gọi AJAX chung cho cả tìm kiếm và lọc trạng thái
+        function fetchData() {
+            var keyword = $('#search-input').val();
+            var status = $('select[name="status"]').val();
+
+            $('tbody').css('opacity', '0.5');
+
+            $.ajax({
+                url: 'search_ajax.php',
+                type: 'POST',
+                data: {
+                    keyword: keyword,
+                    status_filter: status // Gửi thêm trạng thái
+                },
+                success: function(data) {
+                    $('tbody').html(data);
+                    $('tbody').animate({
+                        opacity: 1
+                    }, 200);
+                }
+            });
+        }
+
+        // Khi gõ phím tìm kiếm
+        $('#search-input').on('keyup', function() {
+            clearTimeout(searchTimer);
+            searchTimer = setTimeout(fetchData, 300);
+        });
+
+        // Khi thay đổi dropdown Trạng thái
+        $('select[name="status"]').on('change', function() {
+            fetchData();
+        });
+    });
+</script>
 
 <?php include '../../includes/footer.php'; ?>
