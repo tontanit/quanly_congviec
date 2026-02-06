@@ -35,11 +35,12 @@ function getDeadlineStatus($deadline_str, $trang_thai)
 function highlightKeyword($text, $keyword)
 {
     if (empty($keyword)) return $text;
-    return preg_replace('/(' . preg_quote($keyword, '/') . ')/i', '<span style="background-color: yellow; font-weight: bold;">$1</span>', $text);
+    // Sử dụng preg_quote để tránh lỗi nếu keyword chứa các ký tự đặc biệt của regex
+    return preg_replace('/(' . preg_quote($keyword, '/') . ')/i', '<mark style="background-color: #ffeb3b; padding: 0; font-weight: bold;">$1</mark>', $text);
 }
 
 /**
- * 3. XÂY DỰNG CÂU LỆNH SQL (TÍCH HỢP BỘ LỌC)
+ * 3. XÂY DỰNG CÂU LỆNH SQL
  */
 $where = "WHERE 1=1";
 
@@ -48,12 +49,12 @@ if ($role !== 'admin') {
     $where .= " AND cv.nguoi_thuc_hien_id = $user_id";
 }
 
-// Lọc theo từ khóa (Keyword)
+// Lọc theo từ khóa
 if (!empty($keyword)) {
     $where .= " AND (cv.ten_cong_viec LIKE '%$keyword%' OR cv.mo_ta LIKE '%$keyword%')";
 }
 
-// BỔ SUNG: Lọc theo trạng thái (Status)
+// Lọc theo trạng thái
 if (!empty($status_filter)) {
     $where .= " AND cv.trang_thai = '$status_filter'";
 }
@@ -97,7 +98,7 @@ if (mysqli_num_rows($result) > 0) {
                 <div class="small text-muted text-truncate" style="max-width: 350px;">
                     <?php
                     $mo_ta_clean = strip_tags($row['mo_ta']);
-                    $mo_ta_short = mb_substr($mo_ta_clean, 0, 80) . '...';
+                    $mo_ta_short = mb_substr($mo_ta_clean, 0, 80) . (mb_strlen($mo_ta_clean) > 80 ? '...' : '');
                     echo highlightKeyword($mo_ta_short, $keyword);
                     ?>
                 </div>
@@ -124,16 +125,25 @@ if (mysqli_num_rows($result) > 0) {
             </td>
             <td class="text-center pe-4">
                 <div class="btn-group shadow-sm">
-                    <a href="detail.php?id=<?= $row['id'] ?>" class="btn btn-sm btn-outline-primary"><i class="fa fa-eye"></i></a>
+                    <a href="detail.php?id=<?= $row['id'] ?>" class="btn btn-sm btn-outline-primary" title="Xem chi tiết">
+                        <i class="fa fa-eye"></i>
+                    </a>
                     <?php if ($role === 'admin'): ?>
-                        <a href="edit.php?id=<?= $row['id'] ?>" class="btn btn-sm btn-outline-warning"><i class="fa fa-edit"></i></a>
-                        <a href="delete.php?id=<?= $row['id'] ?>" class="btn btn-sm btn-outline-danger" onclick="return confirm('Xác nhận xóa?')"><i class="fa fa-trash"></i></a>
+                        <a href="edit.php?id=<?= $row['id'] ?>" class="btn btn-sm btn-outline-warning" title="Sửa">
+                            <i class="fa fa-edit"></i>
+                        </a>
+                        <a href="javascript:void(0)"
+                            onclick="confirmDelete(<?= $row['id'] ?>)"
+                            class="btn btn-sm btn-outline-danger"
+                            title="Xóa">
+                            <i class="fa fa-trash"></i>
+                        </a>
                     <?php endif; ?>
                 </div>
             </td>
         </tr>
 <?php endwhile;
 } else {
-    echo '<tr><td colspan="6" class="text-center py-5 text-muted fst-italic">Không tìm thấy công việc nào.</td></tr>';
+    echo '<tr><td colspan="6" class="text-center py-5 text-muted fst-italic">Không tìm thấy công việc nào thỏa mãn điều kiện lọc.</td></tr>';
 }
 ?>
