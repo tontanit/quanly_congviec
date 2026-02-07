@@ -103,8 +103,8 @@ include '../../includes/header.php';
         </div>
 
         <div class="col-xl-5 col-lg-6">
-            <form action="export_excel.php" method="GET" class="d-flex justify-content-center">
-                <div class="input-group input-group-sm export-filter-group">
+            <form action="export_excel.php" method="GET" class="d-flex justify-content-end align-items-center w-100">
+                <div class="input-group input-group-sm export-filter-group shadow-sm">
                     <span class="input-group-text">TỪ</span>
                     <input type="date" name="from_date" value="<?php echo date('Y-m-01'); ?>" required>
 
@@ -117,6 +117,7 @@ include '../../includes/header.php';
                     <button type="submit" formaction="export_word.php" class="btn-export text-primary" title="Xuất Word">
                         <i class="fa fa-file-word fa-lg"></i>
                     </button>
+
                 </div>
             </form>
         </div>

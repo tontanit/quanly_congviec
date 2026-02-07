@@ -33,7 +33,7 @@ function getDeadlineStatus($deadline_str, $trang_thai)
  * 2. CẤU HÌNH PHÂN TRANG & BỘ LỌC
  */
 $limit = 15;
-$page = isset($_GET['page']) ? max(1, (int)$GET['page']) : 1;
+$page = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
 $offset = ($page - 1) * $limit;
 
 $user_id = $_SESSION['user_id'];
@@ -73,7 +73,7 @@ $stats = mysqli_fetch_assoc($res_stats);
  * 4. TRUY VẤN DANH SÁCH
  */
 $sql_count = "SELECT COUNT(*) as total FROM cong_viec cv $where";
-$res_count = mysqli_query($conn, $sql_count);
+$res_count = mysqli_query($conn, $sql_count); // Đổi $res_count thành $sql_count
 $total_rows = mysqli_fetch_assoc($res_count)['total'];
 $total_pages = ceil($total_rows / $limit);
 
@@ -237,15 +237,17 @@ include '../../includes/header.php';
                     while ($row = mysqli_fetch_assoc($result)):
                         $deadline = getDeadlineStatus($row['han_hoan_thanh'], $row['trang_thai']);
                         $is_overdue = ($row['trang_thai'] == 'Quá hạn');
+                        $is_done = ($row['trang_thai'] == 'Đã hoàn thành');
+
                         $badge_color = "bg-light text-dark border";
                         if ($row['trang_thai'] == 'Đang thực hiện') $badge_color = "bg-primary text-white";
-                        if ($row['trang_thai'] == 'Đã hoàn thành') $badge_color = "bg-success text-white";
+                        if ($is_done) $badge_color = "bg-success text-white";
                         if ($is_overdue) $badge_color = "bg-danger text-white";
                     ?>
                         <tr class="<?= $is_overdue ? 'bg-priority' : '' ?>">
                             <td class="text-center text-muted fw-bold"><?= $stt++ ?></td>
                             <td class="px-3">
-                                <div class="fw-bold <?= $is_overdue ? 'text-danger' : 'text-dark' ?>">
+                                <div class="<?= $is_done ? 'fw-normal' : 'fw-bold' ?> <?= $is_overdue ? 'text-danger' : 'text-dark' ?>">
                                     <?= htmlspecialchars($row['ten_cong_viec']) ?>
                                     <?php if ($is_overdue): ?> <i class="fa fa-exclamation-triangle ms-1"></i> <?php endif; ?>
                                 </div>
@@ -294,7 +296,6 @@ include '../../includes/header.php';
 </div>
 
 <script>
-    // Định nghĩa Toast thông báo dùng chung
     const Toast = Swal.mixin({
         toast: true,
         position: 'top-end',
@@ -306,7 +307,6 @@ include '../../includes/header.php';
     $(document).ready(function() {
         var searchTimer;
 
-        // Thông báo nếu có session success
         <?php if (isset($_SESSION['success'])): ?>
             Toast.fire({
                 icon: 'success',

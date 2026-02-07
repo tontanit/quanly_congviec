@@ -35,7 +35,6 @@ function getDeadlineStatus($deadline_str, $trang_thai)
 function highlightKeyword($text, $keyword)
 {
     if (empty($keyword)) return $text;
-    // Sử dụng preg_quote để tránh lỗi nếu keyword chứa các ký tự đặc biệt của regex
     return preg_replace('/(' . preg_quote($keyword, '/') . ')/i', '<mark style="background-color: #ffeb3b; padding: 0; font-weight: bold;">$1</mark>', $text);
 }
 
@@ -44,17 +43,14 @@ function highlightKeyword($text, $keyword)
  */
 $where = "WHERE 1=1";
 
-// Lọc theo quyền (User chỉ thấy việc của mình)
 if ($role !== 'admin') {
     $where .= " AND cv.nguoi_thuc_hien_id = $user_id";
 }
 
-// Lọc theo từ khóa
 if (!empty($keyword)) {
     $where .= " AND (cv.ten_cong_viec LIKE '%$keyword%' OR cv.mo_ta LIKE '%$keyword%')";
 }
 
-// Lọc theo trạng thái
 if (!empty($status_filter)) {
     $where .= " AND cv.trang_thai = '$status_filter'";
 }
@@ -83,15 +79,17 @@ if (mysqli_num_rows($result) > 0) {
     while ($row = mysqli_fetch_assoc($result)):
         $deadline = getDeadlineStatus($row['han_hoan_thanh'], $row['trang_thai']);
         $is_overdue = ($row['trang_thai'] == 'Quá hạn');
+        $is_done = ($row['trang_thai'] == 'Đã hoàn thành'); // Thêm biến kiểm tra hoàn thành
+
         $badge_color = "bg-light text-dark border";
         if ($row['trang_thai'] == 'Đang thực hiện') $badge_color = "bg-primary text-white";
-        if ($row['trang_thai'] == 'Đã hoàn thành') $badge_color = "bg-success text-white";
+        if ($is_done) $badge_color = "bg-success text-white";
         if ($is_overdue) $badge_color = "bg-danger text-white";
 ?>
         <tr class="<?= $is_overdue ? 'bg-priority' : '' ?>">
             <td class="text-center text-muted fw-bold"><?= $stt++ ?></td>
             <td class="px-3">
-                <div class="fw-bold <?= $is_overdue ? 'text-danger' : 'text-dark' ?>">
+                <div class="<?= $is_done ? 'fw-normal' : 'fw-bold' ?> <?= $is_overdue ? 'text-danger' : 'text-dark' ?>">
                     <?= highlightKeyword(htmlspecialchars($row['ten_cong_viec']), $keyword) ?>
                     <?php if ($is_overdue): ?> <i class="fa fa-exclamation-triangle ms-1"></i> <?php endif; ?>
                 </div>
