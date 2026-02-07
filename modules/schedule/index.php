@@ -20,13 +20,11 @@ include '../../includes/header.php';
         box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
     }
 
-    /* Ép nội dung tự xuống dòng, không bị ẩn bớt */
     .fc-daygrid-event {
         white-space: normal !important;
         display: block !important;
     }
 
-    /* Tùy chỉnh vùng chứa nội dung bên trong sự kiện */
     .event-leader-tag {
         font-size: 0.7rem;
         font-weight: 800;
@@ -56,20 +54,80 @@ include '../../includes/header.php';
         color: #0d6efd;
         font-weight: 800 !important;
     }
+
+    /* 3. CSS Đề xuất cho cụm lọc ngày và xuất file */
+    .export-filter-group {
+        background: #ffffff;
+        border: 1px solid #dee2e6;
+        border-radius: 8px;
+        overflow: hidden;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    }
+
+    .export-filter-group .input-group-text {
+        background-color: #f8f9fa;
+        color: #6c757d;
+        font-weight: 600;
+        font-size: 0.75rem;
+        border: none;
+        padding: 0 10px;
+    }
+
+    .export-filter-group input[type="date"] {
+        border: none;
+        font-size: 0.85rem;
+        color: #495057;
+        padding: 5px;
+        width: 135px;
+    }
+
+    .export-filter-group .btn-export {
+        background: #fff;
+        border: none;
+        border-left: 1px solid #dee2e6;
+        padding: 5px 12px;
+        transition: all 0.2s;
+    }
+
+    .export-filter-group .btn-export:hover {
+        background: #f8f9fa;
+    }
 </style>
 
 <div class="container-fluid py-4">
     <div class="row mb-4 align-items-center">
-        <div class="col-md-6">
-            <h3 class="fw-bold mb-0"><i class="fa fa-calendar-check text-primary me-2"></i>LỊCH CÔNG TÁC</h3>
+        <div class="col-xl-4 col-lg-3">
+            <h3 class="fw-bold mb-0 text-primary">
+                <i class="fa fa-calendar-check me-2"></i>LỊCH CÔNG TÁC
+            </h3>
         </div>
-        <div class="col-md-6 text-end">
+
+        <div class="col-xl-5 col-lg-6">
+            <form action="export_excel.php" method="GET" class="d-flex justify-content-center">
+                <div class="input-group input-group-sm export-filter-group">
+                    <span class="input-group-text">TỪ</span>
+                    <input type="date" name="from_date" value="<?php echo date('Y-m-01'); ?>" required>
+
+                    <span class="input-group-text border-start">ĐẾN</span>
+                    <input type="date" name="to_date" value="<?php echo date('Y-m-t'); ?>" required>
+
+                    <button type="submit" class="btn-export text-success" title="Xuất Excel">
+                        <i class="fa fa-file-excel fa-lg"></i>
+                    </button>
+                    <button type="submit" formaction="export_word.php" class="btn-export text-primary" title="Xuất Word">
+                        <i class="fa fa-file-word fa-lg"></i>
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <div class="col-xl-3 col-lg-3 text-end">
             <?php if ($_SESSION['role'] == 'admin'): ?>
-                <a href="trash.php" class="btn btn-outline-secondary shadow-sm fw-bold me-2">
-                    <i class="fa fa-trash-alt me-1"></i> THÙNG RÁC
+                <a href="trash.php" class="btn btn-outline-secondary btn-sm fw-bold shadow-sm me-1" title="Thùng rác">
+                    <i class="fa fa-trash-alt"></i>
                 </a>
-                <button class="btn btn-primary shadow-sm fw-bold" id="btnAddNew">
-                    <i class="fa fa-plus-circle me-1"></i> THÊM LỊCH MỚI
+                <button class="btn btn-primary btn-sm fw-bold shadow-sm" id="btnAddNew">
+                    <i class="fa fa-plus-circle me-1"></i> THÊM MỚI
                 </button>
             <?php endif; ?>
         </div>
@@ -140,8 +198,6 @@ include '../../includes/header.php';
     </div>
 </div>
 
-
-
 <script>
     document.addEventListener('DOMContentLoaded', function() {
         const calendarEl = document.getElementById('calendar');
@@ -163,11 +219,9 @@ include '../../includes/header.php';
             },
             events: 'get_events.php',
 
-            // 3. XỬ LÝ HIỂN THỊ NỘI DUNG (TITLE + LEADER)
             eventContent: function(arg) {
                 let leader = arg.event.extendedProps.leader || 'N/A';
                 let fullTitle = arg.event.title;
-                // Nếu title từ PHP có dạng [Tên] Nội dung, ta tách lấy phần nội dung
                 let cleanTitle = fullTitle.includes('] ') ? fullTitle.split('] ').pop() : fullTitle;
 
                 let container = document.createElement('div');
@@ -199,7 +253,6 @@ include '../../includes/header.php';
 
         calendar.render();
 
-        // Reset Form khi bấm thêm mới
         $('#btnAddNew').on('click', function() {
             $('#eventForm')[0].reset();
             $('#event_id').val('');
@@ -208,13 +261,15 @@ include '../../includes/header.php';
             $('#eventModal').modal('show');
         });
 
-        // Đổ dữ liệu vào Form khi sửa
         function openModalForEdit(event) {
             $('#event_id').val(event.id);
             let title = event.title.includes('] ') ? event.title.split('] ').pop() : event.title;
             $('input[name="tieu_de"]').val(title);
-            $('#bat_dau').val(formatDateTime(event.start));
-            $('#ket_thuc').val(formatDateTime(event.end));
+
+            // Fix: Sử dụng startStr để tránh lệch múi giờ khi đổ dữ liệu vào modal
+            if (event.startStr) $('#bat_dau').val(event.startStr.substring(0, 16));
+            if (event.endStr) $('#ket_thuc').val(event.endStr.substring(0, 16));
+
             $('input[name="dia_diem"]').val(event.extendedProps.location);
             $('select[name="loai_lich"]').val(event.extendedProps.type);
             $('textarea[name="noi_dung"]').val(event.extendedProps.description);
@@ -224,34 +279,33 @@ include '../../includes/header.php';
             $('#eventModal').modal('show');
         }
 
-        // Xử lý AJAX Lưu
         $('#eventForm').on('submit', function(e) {
             e.preventDefault();
             $.post('save_event.php', $(this).serialize(), function(res) {
-                const data = JSON.parse(res);
-                if (data.status === 'success') {
-                    $('#eventModal').modal('hide');
-                    calendar.refetchEvents();
-                    Swal.fire('Thành công', data.message, 'success');
-                } else {
-                    Swal.fire('Lỗi', data.message, 'error');
+                try {
+                    const data = JSON.parse(res);
+                    if (data.status === 'success') {
+                        $('#eventModal').modal('hide');
+                        calendar.refetchEvents();
+                        Swal.fire('Thành công', data.message, 'success');
+                    } else {
+                        Swal.fire('Lỗi', data.message, 'error');
+                    }
+                } catch (e) {
+                    console.error("Lỗi parse JSON:", res);
                 }
             });
         });
 
-        // Xử lý AJAX Xóa (Soft Delete)
         $('#btnDelete').on('click', function() {
             const id = $('#event_id').val();
-
             Swal.fire({
                 title: 'Xác nhận xóa?',
                 text: "Lịch sẽ được chuyển vào thùng rác!",
                 icon: 'warning',
                 showCancelButton: true,
                 confirmButtonColor: '#d33',
-                cancelButtonColor: '#6c757d',
-                confirmButtonText: 'Đồng ý xóa',
-                cancelButtonText: 'Hủy'
+                confirmButtonText: 'Đồng ý xóa'
             }).then((result) => {
                 if (result.isConfirmed) {
                     $.ajax({
@@ -261,23 +315,13 @@ include '../../includes/header.php';
                             id: id
                         },
                         success: function(res) {
-                            // Xử lý an toàn nếu res là string hoặc object
                             let data = typeof res === 'object' ? res : JSON.parse(res);
-
                             if (data.status === 'success') {
-                                // 1. Đóng Modal ngay lập tức
                                 $('#eventModal').modal('hide');
-
-                                // 2. Xóa sạch dữ liệu trong form để tránh xung đột
-                                $('#eventForm')[0].reset();
-
-                                // 3. Tải lại dữ liệu trên lịch (Không cần load lại trang)
+                                $('.modal-backdrop').remove(); // Đảm bảo dọn sạch backdrop
                                 calendar.refetchEvents();
-
-                                // 4. Thông báo thành công
                                 Swal.fire({
                                     title: 'Đã xóa!',
-                                    text: data.message,
                                     icon: 'success',
                                     timer: 1500,
                                     showConfirmButton: false
@@ -285,9 +329,6 @@ include '../../includes/header.php';
                             } else {
                                 Swal.fire('Lỗi', data.message, 'error');
                             }
-                        },
-                        error: function() {
-                            Swal.fire('Lỗi', 'Không thể kết nối đến máy chủ', 'error');
                         }
                     });
                 }
