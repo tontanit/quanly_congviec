@@ -18,11 +18,49 @@ include '../../includes/header.php';
         margin-bottom: 2px !important;
         padding: 3px 5px !important;
         box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        transition: transform 0.1s ease;
+    }
+
+    .fc-event:hover {
+        transform: scale(1.02);
+        z-index: 5;
     }
 
     .fc-daygrid-event {
         white-space: normal !important;
         display: block !important;
+    }
+
+    /* 4. Đánh dấu màu sắc theo loại hình - CODE BỔ SUNG */
+    .bg-event-hop {
+        background-color: #ef4444 !important;
+        border-left: 4px solid #991b1b !important;
+    }
+
+    .bg-event-cong-tac {
+        background-color: #3b82f6 !important;
+        border-left: 4px solid #1e40af !important;
+    }
+
+    .bg-event-tiep-khach {
+        background-color: #10b981 !important;
+        border-left: 4px solid #065f46 !important;
+    }
+
+    .bg-event-khac {
+        background-color: #64748b !important;
+        border-left: 4px solid #334155 !important;
+    }
+
+    .event-type-tag {
+        font-size: 0.6rem;
+        background: rgba(0, 0, 0, 0.2);
+        padding: 1px 4px;
+        border-radius: 3px;
+        margin-right: 5px;
+        font-weight: 800;
+        color: #fff;
+        text-transform: uppercase;
     }
 
     .event-leader-tag {
@@ -32,6 +70,7 @@ include '../../includes/header.php';
         border-bottom: 1px solid rgba(255, 255, 255, 0.3);
         margin-bottom: 2px;
         display: block;
+        color: #fff;
     }
 
     .event-job-title {
@@ -39,6 +78,7 @@ include '../../includes/header.php';
         font-weight: 500;
         line-height: 1.3;
         display: block;
+        color: #fff;
     }
 
     /* 2. Cấu hình chung cho lịch */
@@ -55,7 +95,7 @@ include '../../includes/header.php';
         font-weight: 800 !important;
     }
 
-    /* 3. CSS Đề xuất cho cụm lọc ngày và xuất file */
+    /* 3. CSS cho cụm lọc ngày và xuất file */
     .export-filter-group {
         background: #ffffff;
         border: 1px solid #dee2e6;
@@ -117,7 +157,6 @@ include '../../includes/header.php';
                     <button type="submit" formaction="export_word.php" class="btn-export text-primary" title="Xuất Word">
                         <i class="fa fa-file-word fa-lg"></i>
                     </button>
-
                 </div>
             </form>
         </div>
@@ -137,6 +176,14 @@ include '../../includes/header.php';
     <div class="card shadow-sm border-0">
         <div class="card-body p-0">
             <div id='calendar'></div>
+        </div>
+        <div class="card-footer bg-white border-top-0 py-3">
+            <div class="d-flex flex-wrap gap-4 justify-content-center">
+                <div class="d-flex align-items-center"><span class="badge bg-danger me-2" style="width:12px; height:12px; border-radius:3px"></span> <small class="fw-bold">Họp</small></div>
+                <div class="d-flex align-items-center"><span class="badge bg-primary me-2" style="width:12px; height:12px; border-radius:3px"></span> <small class="fw-bold">Công tác</small></div>
+                <div class="d-flex align-items-center"><span class="badge bg-success me-2" style="width:12px; height:12px; border-radius:3px"></span> <small class="fw-bold">Tiếp khách</small></div>
+                <div class="d-flex align-items-center"><span class="badge bg-secondary me-2" style="width:12px; height:12px; border-radius:3px"></span> <small class="fw-bold">Khác</small></div>
+            </div>
         </div>
     </div>
 </div>
@@ -220,16 +267,32 @@ include '../../includes/header.php';
             },
             events: 'get_events.php',
 
+            // CODE BỔ SUNG: Gán class màu sắc dựa trên loại hình
+            eventDidMount: function(info) {
+                const type = info.event.extendedProps.type;
+                if (type === 'Họp') info.el.classList.add('bg-event-hop');
+                else if (type === 'Công tác') info.el.classList.add('bg-event-cong-tac');
+                else if (type === 'Tiếp khách') info.el.classList.add('bg-event-tiep-khach');
+                else info.el.classList.add('bg-event-khac');
+            },
+
+            // CODE BỔ SUNG: Cấu trúc nội dung hiển thị (Gồm Leader và Icon)
             eventContent: function(arg) {
                 let leader = arg.event.extendedProps.leader || 'N/A';
+                let type = arg.event.extendedProps.type || 'Khác';
                 let fullTitle = arg.event.title;
                 let cleanTitle = fullTitle.includes('] ') ? fullTitle.split('] ').pop() : fullTitle;
 
+                let typeIcon = type === 'Họp' ? '<i class="fa fa-comments me-1"></i>' : '<i class="fa fa-briefcase me-1"></i>';
+
                 let container = document.createElement('div');
                 container.innerHTML = `
-                <span class="event-leader-tag"><i class="fa fa-user-circle me-1"></i>${leader}</span>
-                <span class="event-job-title">${cleanTitle}</span>
-            `;
+                    <div class="d-flex align-items-center mb-1" style="overflow:hidden">
+                        <span class="event-type-tag">${type}</span>
+                        <span class="event-leader-tag mb-0 border-0" style="white-space:nowrap"><i class="fa fa-user-circle me-1"></i>${leader}</span>
+                    </div>
+                    <span class="event-job-title">${typeIcon}${cleanTitle}</span>
+                `;
                 return {
                     domNodes: [container]
                 };
@@ -267,7 +330,6 @@ include '../../includes/header.php';
             let title = event.title.includes('] ') ? event.title.split('] ').pop() : event.title;
             $('input[name="tieu_de"]').val(title);
 
-            // Fix: Sử dụng startStr để tránh lệch múi giờ khi đổ dữ liệu vào modal
             if (event.startStr) $('#bat_dau').val(event.startStr.substring(0, 16));
             if (event.endStr) $('#ket_thuc').val(event.endStr.substring(0, 16));
 
@@ -319,7 +381,7 @@ include '../../includes/header.php';
                             let data = typeof res === 'object' ? res : JSON.parse(res);
                             if (data.status === 'success') {
                                 $('#eventModal').modal('hide');
-                                $('.modal-backdrop').remove(); // Đảm bảo dọn sạch backdrop
+                                $('.modal-backdrop').remove();
                                 calendar.refetchEvents();
                                 Swal.fire({
                                     title: 'Đã xóa!',
@@ -335,13 +397,6 @@ include '../../includes/header.php';
                 }
             });
         });
-
-        function formatDateTime(date) {
-            if (!date) return '';
-            const d = new Date(date);
-            d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
-            return d.toISOString().slice(0, 16);
-        }
     });
 </script>
 
