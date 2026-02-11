@@ -1,6 +1,7 @@
 <?php
 require_once 'config/database.php';
 
+// Kiểm tra đăng nhập
 if (!isset($_SESSION['user_id'])) {
     header("Location: login.php");
     exit();
@@ -10,15 +11,14 @@ $user_id = $_SESSION['user_id'];
 $role = $_SESSION['role'];
 
 /**
- * 1. LOGIC PHÂN QUYỀN TRUY VẤN (SRS)
- * Nếu là 'user' hoặc 'Nguoi_thuc_hien', chỉ lấy dữ liệu của chính họ.
+ * 1. LOGIC PHÂN QUYỀN TRUY VẤN
  */
 $where_clause = "";
 if ($role !== 'admin') {
     $where_clause = " WHERE nguoi_thuc_hien_id = $user_id";
 }
 
-// Thống kê số lượng công việc theo quyền truy cập
+// Thống kê tổng quan
 $sql_count = "SELECT 
     COUNT(*) as tong,
     SUM(CASE WHEN trang_thai = 'Chưa thực hiện' THEN 1 ELSE 0 END) as chua_lam,
@@ -30,46 +30,68 @@ FROM cong_viec $where_clause";
 $result_count = mysqli_query($conn, $sql_count);
 $counts = mysqli_fetch_assoc($result_count);
 
-// 2. Lấy danh sách 5 công việc gần hạn (7 ngày tới) theo quyền truy cập
+/**
+ * 2. LẤY DÂN DANH SÁCH CÔNG VIỆC TRONG 7 NGÀY TỚI
+ * - Chỉ lấy việc chưa hoàn thành
+ * - Hạn trong khoảng 7 ngày tới (bao gồm cả việc đã quá hạn nhưng chưa xong)
+ */
 $sql_tasks = "SELECT cv.*, u.ho_ten as nguoi_lam 
               FROM cong_viec cv 
               LEFT JOIN users u ON cv.nguoi_thuc_hien_id = u.id 
-              $where_clause
-              ORDER BY cv.han_hoan_thanh ASC LIMIT 5";
+              WHERE cv.trang_thai != 'Đã hoàn thành' 
+              AND cv.han_hoan_thanh <= DATE_ADD(CURDATE(), INTERVAL 7 DAY)";
+
+if ($role !== 'admin') {
+    $sql_tasks .= " AND cv.nguoi_thuc_hien_id = $user_id";
+}
+
+$sql_tasks .= " ORDER BY cv.han_hoan_thanh ASC LIMIT 10";
 $result_tasks = mysqli_query($conn, $sql_tasks);
 
 include 'includes/header.php';
 ?>
 
 <style>
-    :root {
-        --app-blue: #0056b3;
-    }
-
     .stat-card {
         border: none;
-        border-radius: 10px;
-        transition: transform 0.3s;
+        border-radius: 12px;
+        transition: all 0.3s ease;
     }
 
     .stat-card:hover {
         transform: translateY(-5px);
+        box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1) !important;
     }
 
     .table thead th {
-        color: var(--app-blue);
+        background-color: #f8f9fa;
+        color: #495057;
+        font-size: 0.8rem;
+        font-weight: 700;
         text-transform: uppercase;
-        font-size: 0.85rem;
-        letter-spacing: 0.5px;
+        border-top: none;
+    }
+
+    .deadline-urgent {
+        color: #dc3545;
+        font-weight: 700;
+    }
+
+    .deadline-soon {
+        color: #fd7e14;
+        font-weight: 600;
     }
 </style>
 
 <div class="container-fluid py-4">
     <div class="row mb-4">
         <div class="col-12">
-            <h3 class="fw-bold text-uppercase text-primary border-bottom pb-3">
-                <i class="fa-solid fa-gauge-high me-2"></i>Bảng điều khiển hệ thống
-            </h3>
+            <div class="d-flex align-items-center justify-content-between border-bottom pb-3">
+                <h3 class="fw-bold text-primary mb-0">
+                    <i class="fa-solid fa-gauge-high me-2"></i>BẢNG ĐIỀU KHIỂN
+                </h3>
+                <span class="text-muted small italic">Cập nhật: <?php echo date('H:i d/m/Y'); ?></span>
+            </div>
         </div>
     </div>
 
@@ -77,15 +99,15 @@ include 'includes/header.php';
         <div class="col-md-3">
             <div class="card stat-card bg-primary text-white shadow-sm">
                 <div class="card-body py-4">
-                    <h6 class="card-title text-uppercase opacity-75 small">Tổng công việc</h6>
+                    <h6 class="text-uppercase opacity-75 small fw-bold">Tổng công việc</h6>
                     <h2 class="display-6 fw-bold mb-0"><?php echo $counts['tong'] ?? 0; ?></h2>
                 </div>
             </div>
         </div>
         <div class="col-md-3">
-            <div class="card stat-card bg-warning text-dark shadow-sm">
+            <div class="card stat-card bg-info text-white shadow-sm">
                 <div class="card-body py-4">
-                    <h6 class="card-title text-uppercase opacity-75 small">Đang thực hiện</h6>
+                    <h6 class="text-uppercase opacity-75 small fw-bold">Đang thực hiện</h6>
                     <h2 class="display-6 fw-bold mb-0"><?php echo $counts['dang_lam'] ?? 0; ?></h2>
                 </div>
             </div>
@@ -93,7 +115,7 @@ include 'includes/header.php';
         <div class="col-md-3">
             <div class="card stat-card bg-success text-white shadow-sm">
                 <div class="card-body py-4">
-                    <h6 class="card-title text-uppercase opacity-75 small">Hoàn thành</h6>
+                    <h6 class="text-uppercase opacity-75 small fw-bold">Hoàn thành</h6>
                     <h2 class="display-6 fw-bold mb-0"><?php echo $counts['xong'] ?? 0; ?></h2>
                 </div>
             </div>
@@ -101,7 +123,7 @@ include 'includes/header.php';
         <div class="col-md-3">
             <div class="card stat-card bg-danger text-white shadow-sm">
                 <div class="card-body py-4">
-                    <h6 class="card-title text-uppercase opacity-75 small">Quá hạn</h6>
+                    <h6 class="text-uppercase opacity-75 small fw-bold">Quá hạn</h6>
                     <h2 class="display-6 fw-bold mb-0"><?php echo $counts['tre_han'] ?? 0; ?></h2>
                 </div>
             </div>
@@ -109,10 +131,10 @@ include 'includes/header.php';
     </div>
 
     <?php if ($counts['tre_han'] > 0): ?>
-        <div class="alert alert-danger shadow-sm d-flex align-items-center mb-4" role="alert">
+        <div class="alert alert-danger shadow-sm d-flex align-items-center mb-4 border-0 border-start border-5 border-danger" role="alert">
             <i class="fa-solid fa-triangle-exclamation fs-4 me-3"></i>
             <div>
-                <strong>Chú ý:</strong> Bạn có <b><?php echo $counts['tre_han']; ?></b> công việc đã quá hạn. Vui lòng cập nhật tiến độ ngay!
+                <strong>Cảnh báo:</strong> Bạn đang có <b><?php echo $counts['tre_han']; ?></b> công việc bị chậm tiến độ. Hãy ưu tiên xử lý ngay!
             </div>
         </div>
     <?php endif; ?>
@@ -120,19 +142,20 @@ include 'includes/header.php';
     <div class="row mt-4">
         <div class="col-12">
             <div class="card shadow-sm border-0">
-                <div class="card-header bg-white py-3 border-bottom">
+                <div class="card-header bg-white py-3 d-flex align-items-center justify-content-between">
                     <h6 class="mb-0 fw-bold text-dark">
-                        <i class="fa-solid fa-clock-rotate-left me-2 text-primary"></i>Công việc sắp đến hạn (7 ngày tới)
+                        <i class="fa-solid fa-calendar-check me-2 text-primary"></i>Kế hoạch 7 ngày tới
                     </h6>
+                    <span class="badge bg-light text-dark border">Chỉ hiển thị việc chưa xong</span>
                 </div>
                 <div class="card-body p-0">
                     <div class="table-responsive">
                         <table class="table table-hover align-middle mb-0">
-                            <thead class="table-light text-center">
+                            <thead>
                                 <tr>
-                                    <th class="text-center">Tên công việc</th>
+                                    <th class="ps-4">Nội dung công việc</th>
                                     <th class="text-center">Người thực hiện</th>
-                                    <th class="text-center">Hạn hoàn thành</th>
+                                    <th class="text-center">Hạn cuối</th>
                                     <th class="text-center">Trạng thái</th>
                                     <th class="text-center pe-4">Thao tác</th>
                                 </tr>
@@ -140,52 +163,87 @@ include 'includes/header.php';
                             <tbody>
                                 <?php if (mysqli_num_rows($result_tasks) > 0): ?>
                                     <?php while ($row = mysqli_fetch_assoc($result_tasks)):
-                                        $is_overdue = ($row['trang_thai'] == 'Quá hạn');
+                                        // Tính toán số ngày còn lại
+                                        $deadline = strtotime($row['han_hoan_thanh']);
+                                        $today = strtotime(date('Y-m-d'));
+                                        $days_diff = round(($deadline - $today) / (60 * 60 * 24));
 
-                                        // Định dạng màu sắc badge
-                                        $badge_class = "bg-secondary";
-                                        if ($row['trang_thai'] == 'Đang thực hiện') $badge_class = "bg-primary";
-                                        if ($row['trang_thai'] == 'Đã hoàn thành') $badge_class = "bg-success";
-                                        if ($row['trang_thai'] == 'Quá hạn') $badge_class = "bg-danger";
+                                        $row_class = "";
+                                        $deadline_class = "";
+
+                                        if ($days_diff < 0) {
+                                            $row_class = "table-danger-light"; // Tùy chọn class CSS nếu cần
+                                            $deadline_text = "Trễ " . abs($days_diff) . " ngày";
+                                            $deadline_class = "deadline-urgent";
+                                        } elseif ($days_diff == 0) {
+                                            $deadline_text = "Hôm nay!";
+                                            $deadline_class = "deadline-urgent";
+                                        } elseif ($days_diff <= 3) {
+                                            $deadline_text = "Còn $days_diff ngày";
+                                            $deadline_class = "deadline-soon";
+                                        } else {
+                                            $deadline_text = "Còn $days_diff ngày";
+                                        }
+
+                                        $badge_class = ($row['trang_thai'] == 'Đang thực hiện') ? 'bg-primary' : 'bg-warning text-dark';
+                                        if ($row['trang_thai'] == 'Quá hạn') $badge_class = 'bg-danger';
                                     ?>
-                                        <tr class="<?php echo $is_overdue ? 'table-danger' : ''; ?>">
+                                        <tr>
                                             <td class="ps-4">
-                                                <div class="ftext-lowercase"><?php echo $row['ten_cong_viec']; ?></div>
-                                                <?php if ($is_overdue): ?>
-                                                    <small class="text-danger"><i class="fa-solid fa-circle-exclamation me-1"></i>Đã quá hạn</small>
-                                                <?php endif; ?>
+                                                <div class="fw-bold text-dark"><?php echo $row['ten_cong_viec']; ?></div>
+                                                <small class="text-muted d-block mt-1">Mã: #CV-<?php echo $row['id']; ?></small>
                                             </td>
                                             <td class="text-center">
-                                                <span class="small text-muted"><?php echo $row['nguoi_lam']; ?></span>
-                                            </td>
-                                            <td class="text-center <?php echo $is_overdue ? 'fw-bold text-danger' : ''; ?>">
-                                                <i class="fa-regular fa-calendar me-1"></i>
-                                                <?php echo date('d/m/Y', strtotime($row['han_hoan_thanh'])); ?>
+                                                <div class="d-flex align-items-center justify-content-center">
+                                                    <div class="avatar-xs me-2 bg-light rounded-circle text-primary fw-bold" style="width:30px; height:30px; line-height:30px; font-size: 10px; border: 1px solid #eee;">
+                                                        <?php echo strtoupper(substr($row['nguoi_lam'], 0, 1)); ?>
+                                                    </div>
+                                                    <span class="small"><?php echo $row['nguoi_lam']; ?></span>
+                                                </div>
                                             </td>
                                             <td class="text-center">
-                                                <span class="badge rounded-pill <?php echo $badge_class; ?> px-3">
+                                                <div class="<?php echo $deadline_class; ?>">
+                                                    <?php echo date('d/m/Y', $deadline); ?>
+                                                </div>
+                                                <small class="d-block <?php echo $deadline_class; ?> opacity-75">
+                                                    <?php echo $deadline_text; ?>
+                                                </small>
+                                            </td>
+                                            <td class="text-center">
+                                                <span class="badge rounded-pill <?php echo $badge_class; ?> fw-medium py-2 px-2 text-nowrap">
                                                     <?php echo $row['trang_thai']; ?>
                                                 </span>
                                             </td>
-                                            <td class="text-center pe-4">
-                                                <a href="modules/tasks/detail.php?id=<?php echo $row['id']; ?>" class="btn btn-sm btn-outline-primary border-0">
-                                                    <i class="fa fa-eye me-1"></i>Xem
+
+                                            <td class="text-center pe-4" style="width: 1%;">
+                                                <a href="modules/tasks/detail.php?id=<?php echo $row['id']; ?>"
+                                                    class="badge rounded-pill border border-primary text-primary text-decoration-none fw-medium py-2 px-2 text-nowrap shadow-sm">
+                                                    Chi tiết <i class="fa-solid fa-chevron-right ms-1" style="font-size: 8px;"></i>
                                                 </a>
                                             </td>
+
                                         </tr>
                                     <?php endwhile; ?>
                                 <?php else: ?>
                                     <tr>
-                                        <td colspan="5" class="text-center py-4 text-muted fst-italic">Không có công việc nào sắp đến hạn.</td>
+                                        <td colspan="5" class="text-center py-5">
+                                            <img src="https://cdn-icons-png.flaticon.com/512/4076/4076549.png" width="60" class="opacity-25 mb-3">
+                                            <p class="text-muted fst-italic">Chúc mừng! Không có công việc nào cần xử lý gấp trong 7 ngày tới.</p>
+                                        </td>
                                     </tr>
                                 <?php endif; ?>
                             </tbody>
                         </table>
                     </div>
                 </div>
+                <div class="card-footer bg-white text-center py-3">
+                    <a href="modules/tasks/list.php" class="text-decoration-none small fw-bold">Xem tất cả công việc <i class="fa-solid fa-angle-right ms-1"></i></a>
+                </div>
             </div>
         </div>
     </div>
 </div>
+
+
 
 <?php include 'includes/footer.php'; ?>
