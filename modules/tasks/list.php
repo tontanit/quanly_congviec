@@ -61,11 +61,28 @@ if (!empty($status_filter)) {
  */
 $sql_stats = "SELECT 
     COUNT(*) as total,
-    SUM(CASE WHEN trang_thai = 'Chưa thực hiện' THEN 1 ELSE 0 END) as pending,
-    SUM(CASE WHEN trang_thai = 'Đang thực hiện' THEN 1 ELSE 0 END) as doing,
-    SUM(CASE WHEN trang_thai = 'Đã hoàn thành' THEN 1 ELSE 0 END) as done,
-    SUM(CASE WHEN trang_thai = 'Quá hạn' THEN 1 ELSE 0 END) as overdue
+
+    SUM(CASE 
+        WHEN cv.trang_thai != 'Đã hoàn thành' 
+             AND cv.han_hoan_thanh < CURDATE() 
+        THEN 1 ELSE 0 END) as overdue,
+
+    SUM(CASE 
+        WHEN cv.trang_thai = 'Chưa thực hiện'
+             AND cv.han_hoan_thanh >= CURDATE()
+        THEN 1 ELSE 0 END) as pending,
+
+    SUM(CASE 
+        WHEN cv.trang_thai = 'Đang thực hiện'
+             AND cv.han_hoan_thanh >= CURDATE()
+        THEN 1 ELSE 0 END) as doing,
+
+    SUM(CASE 
+        WHEN cv.trang_thai = 'Đã hoàn thành'
+        THEN 1 ELSE 0 END) as done
+
 FROM cong_viec cv $where";
+
 $res_stats = mysqli_query($conn, $sql_stats);
 $stats = mysqli_fetch_assoc($res_stats);
 
@@ -77,20 +94,32 @@ $res_count = mysqli_query($conn, $sql_count); // Đổi $res_count thành $sql_c
 $total_rows = mysqli_fetch_assoc($res_count)['total'];
 $total_pages = ceil($total_rows / $limit);
 
-$sql = "SELECT cv.*, u.ho_ten as nguoi_lam 
+$sql = "SELECT 
+            cv.*, 
+            u.ho_ten as nguoi_lam,
+
+            CASE 
+                WHEN cv.trang_thai != 'Đã hoàn thành' 
+                     AND cv.han_hoan_thanh < CURDATE() 
+                THEN 'Quá hạn'
+                ELSE cv.trang_thai
+            END as trang_thai_hien_thi
+
         FROM cong_viec cv 
         LEFT JOIN users u ON cv.nguoi_thuc_hien_id = u.id 
         $where 
         ORDER BY 
             CASE 
-                WHEN cv.trang_thai = 'Quá hạn' THEN 1 
-                WHEN cv.trang_thai = 'Đang thực hiện' THEN 2
-                WHEN cv.trang_thai = 'Chưa thực hiện' THEN 3
+                WHEN cv.trang_thai != 'Đã hoàn thành' 
+                     AND cv.han_hoan_thanh < CURDATE() THEN 1
+                WHEN cv.trang_thai = 'Chưa thực hiện' THEN 2
+                WHEN cv.trang_thai = 'Đang thực hiện' THEN 3
                 WHEN cv.trang_thai = 'Đã hoàn thành' THEN 4
-                ELSE 5 
-            END ASC, 
-            cv.created_at DESC 
+                ELSE 5
+            END ASC,
+            cv.han_hoan_thanh ASC
         LIMIT $limit OFFSET $offset";
+
 $result = mysqli_query($conn, $sql);
 
 include '../../includes/header.php';
@@ -235,12 +264,12 @@ include '../../includes/header.php';
                     <?php
                     $stt = $offset + 1;
                     while ($row = mysqli_fetch_assoc($result)):
-                        $deadline = getDeadlineStatus($row['han_hoan_thanh'], $row['trang_thai']);
-                        $is_overdue = ($row['trang_thai'] == 'Quá hạn');
-                        $is_done = ($row['trang_thai'] == 'Đã hoàn thành');
+                        $deadline = getDeadlineStatus($row['han_hoan_thanh'], $row['trang_thai_hien_thi']);
+                        $is_overdue = ($row['trang_thai_hien_thi'] == 'Quá hạn');
+                        $is_done = ($row['trang_thai_hien_thi'] == 'Đã hoàn thành');
 
                         $badge_color = "bg-light text-dark border";
-                        if ($row['trang_thai'] == 'Đang thực hiện') $badge_color = "bg-primary text-white";
+                        if ($row['trang_thai_hien_thi'] == 'Đang thực hiện') $badge_color = "bg-primary text-white";
                         if ($is_done) $badge_color = "bg-success text-white";
                         if ($is_overdue) $badge_color = "bg-danger text-white";
                     ?>
@@ -273,7 +302,7 @@ include '../../includes/header.php';
                             </td>
                             <td class="text-center">
                                 <span class="badge <?= $badge_color ?> rounded-pill px-3 py-2" style="font-size: 0.75rem;">
-                                    <?= $row['trang_thai'] ?>
+                                    <?= $row['trang_thai_hien_thi'] ?>
                                 </span>
                             </td>
                             <td class="text-center pe-4">

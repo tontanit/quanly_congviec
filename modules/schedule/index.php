@@ -132,6 +132,31 @@ include '../../includes/header.php';
     .export-filter-group .btn-export:hover {
         background: #f8f9fa;
     }
+
+    /* Fix hiển thị rõ nội dung khi hover ở chế độ Danh sách */
+
+    .fc-list-event:hover {
+        background-color: #e9f2ff !important;
+    }
+
+    .fc-list-event:hover td {
+        color: #0d6efd !important;
+    }
+
+    .fc-list-event:hover .event-type-tag,
+    .fc-list-event:hover .event-leader-tag,
+    .fc-list-event:hover .event-job-title {
+        color: #0d6efd !important;
+    }
+
+    .fc-list-event-title,
+    .fc-list-event-time {
+        color: #212529 !important;
+    }
+
+    .fc-list-event-dot {
+        border-color: #0d6efd !important;
+    }
 </style>
 
 <div class="container-fluid py-4">
