@@ -74,6 +74,7 @@ include '../../includes/header.php';
     .card-stats {
         transition: transform 0.2s;
         border: none;
+        will-change: transform;
     }
 
     .card-stats:hover {
@@ -101,12 +102,25 @@ include '../../includes/header.php';
         width: 0;
         background: var(--app-blue);
         transition: 0.4s;
-        position: relative;
+        position: absolute;
+        /* Thay đổi để nằm sát mép trên card */
         top: 0;
+        left: 0;
+        z-index: 10;
     }
 
     .bg-priority {
-        background-color: #fff5f5 ! femin;
+        background-color: #fff5f5 !important;
+        /* Đã sửa từ ! femin */
+    }
+
+    /* Bổ sung cho tính năng tìm kiếm */
+    .highlight {
+        background-color: #ffeb3b;
+        color: #000;
+        padding: 0 2px;
+        border-radius: 2px;
+        font-weight: bold;
     }
 </style>
 
