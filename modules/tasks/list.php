@@ -1,4 +1,5 @@
 <?php
+session_start();
 require_once '../../config/database.php';
 
 // Kiểm tra đăng nhập
@@ -30,12 +31,8 @@ function getDeadlineStatus($deadline_str, $trang_thai)
 }
 
 /**
- * 2. CẤU HÌNH PHÂN TRANG & BỘ LỌC
+ * 2. CẤU HÌNH BỘ LỌC CƠ BẢN
  */
-$limit = 15;
-$page = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
-$offset = ($page - 1) * $limit;
-
 $user_id = $_SESSION['user_id'];
 $role = $_SESSION['role'];
 
@@ -45,82 +42,21 @@ if ($role !== 'admin') {
 }
 
 $keyword = $_GET['keyword'] ?? '';
-if (!empty($keyword)) {
-    $k = mysqli_real_escape_string($conn, $keyword);
-    $where .= " AND (cv.ten_cong_viec LIKE '%$k%' OR cv.mo_ta LIKE '%$k%')";
-}
-
 $status_filter = $_GET['status'] ?? '';
-if (!empty($status_filter)) {
-    $s = mysqli_real_escape_string($conn, $status_filter);
-    $where .= " AND cv.trang_thai = '$s'";
-}
 
 /**
- * 3. TRUY VẤN THỐNG KÊ (WIDGETS)
+ * 3. TRUY VẤN THỐNG KÊ (WIDGETS) - Luôn hiển thị tổng quát
  */
 $sql_stats = "SELECT 
     COUNT(*) as total,
-
-    SUM(CASE 
-        WHEN cv.trang_thai != 'Đã hoàn thành' 
-             AND cv.han_hoan_thanh < CURDATE() 
-        THEN 1 ELSE 0 END) as overdue,
-
-    SUM(CASE 
-        WHEN cv.trang_thai = 'Chưa thực hiện'
-             AND cv.han_hoan_thanh >= CURDATE()
-        THEN 1 ELSE 0 END) as pending,
-
-    SUM(CASE 
-        WHEN cv.trang_thai = 'Đang thực hiện'
-             AND cv.han_hoan_thanh >= CURDATE()
-        THEN 1 ELSE 0 END) as doing,
-
-    SUM(CASE 
-        WHEN cv.trang_thai = 'Đã hoàn thành'
-        THEN 1 ELSE 0 END) as done
-
+    SUM(CASE WHEN cv.trang_thai = 'Chưa thực hiện' THEN 1 ELSE 0 END) as waiting,
+    SUM(CASE WHEN cv.trang_thai = 'Đang thực hiện' AND cv.han_hoan_thanh >= CURDATE() THEN 1 ELSE 0 END) as doing,
+    SUM(CASE WHEN cv.trang_thai = 'Đã hoàn thành' THEN 1 ELSE 0 END) as done,
+    SUM(CASE WHEN cv.trang_thai != 'Đã hoàn thành' AND cv.han_hoan_thanh < CURDATE() THEN 1 ELSE 0 END) as overdue
 FROM cong_viec cv $where";
 
 $res_stats = mysqli_query($conn, $sql_stats);
 $stats = mysqli_fetch_assoc($res_stats);
-
-/**
- * 4. TRUY VẤN DANH SÁCH
- */
-$sql_count = "SELECT COUNT(*) as total FROM cong_viec cv $where";
-$res_count = mysqli_query($conn, $sql_count); // Đổi $res_count thành $sql_count
-$total_rows = mysqli_fetch_assoc($res_count)['total'];
-$total_pages = ceil($total_rows / $limit);
-
-$sql = "SELECT 
-            cv.*, 
-            u.ho_ten as nguoi_lam,
-
-            CASE 
-                WHEN cv.trang_thai != 'Đã hoàn thành' 
-                     AND cv.han_hoan_thanh < CURDATE() 
-                THEN 'Quá hạn'
-                ELSE cv.trang_thai
-            END as trang_thai_hien_thi
-
-        FROM cong_viec cv 
-        LEFT JOIN users u ON cv.nguoi_thuc_hien_id = u.id 
-        $where 
-        ORDER BY 
-            CASE 
-                WHEN cv.trang_thai != 'Đã hoàn thành' 
-                     AND cv.han_hoan_thanh < CURDATE() THEN 1
-                WHEN cv.trang_thai = 'Chưa thực hiện' THEN 2
-                WHEN cv.trang_thai = 'Đang thực hiện' THEN 3
-                WHEN cv.trang_thai = 'Đã hoàn thành' THEN 4
-                ELSE 5
-            END ASC,
-            cv.han_hoan_thanh ASC
-        LIMIT $limit OFFSET $offset";
-
-$result = mysqli_query($conn, $sql);
 
 include '../../includes/header.php';
 ?>
@@ -168,6 +104,10 @@ include '../../includes/header.php';
         position: relative;
         top: 0;
     }
+
+    .bg-priority {
+        background-color: #fff5f5 ! femin;
+    }
 </style>
 
 <div class="container-fluid py-4 px-lg-5">
@@ -183,35 +123,43 @@ include '../../includes/header.php';
     </div>
 
     <div class="row g-3 mb-4" id="stats-container">
-        <div class="col-md-3">
+        <div class="col">
             <div class="card card-stats shadow-sm bg-white border-start border-primary border-4">
                 <div class="card-body">
                     <div class="text-muted small fw-bold text-uppercase">Tổng số</div>
-                    <h3 class="fw-bold mb-0 text-primary"><?= $stats['total'] ?></h3>
+                    <h3 class="fw-bold mb-0 text-primary" id="stat-total"><?= $stats['total'] ?></h3>
                 </div>
             </div>
         </div>
-        <div class="col-md-3">
+        <div class="col">
+            <div class="card card-stats shadow-sm bg-white border-start border-secondary border-4">
+                <div class="card-body">
+                    <div class="text-muted small fw-bold text-uppercase">Chưa thực hiện</div>
+                    <h3 class="fw-bold mb-0 text-secondary" id="stat-waiting"><?= $stats['waiting'] ?? 0 ?></h3>
+                </div>
+            </div>
+        </div>
+        <div class="col">
             <div class="card card-stats shadow-sm bg-white border-start border-info border-4">
                 <div class="card-body">
                     <div class="text-muted small fw-bold text-uppercase">Đang làm</div>
-                    <h3 class="fw-bold mb-0 text-info"><?= $stats['doing'] ?? 0 ?></h3>
+                    <h3 class="fw-bold mb-0 text-info" id="stat-doing"><?= $stats['doing'] ?? 0 ?></h3>
                 </div>
             </div>
         </div>
-        <div class="col-md-3">
+        <div class="col">
             <div class="card card-stats shadow-sm bg-white border-start border-success border-4">
                 <div class="card-body">
                     <div class="text-muted small fw-bold text-uppercase">Hoàn thành</div>
-                    <h3 class="fw-bold mb-0 text-success"><?= $stats['done'] ?? 0 ?></h3>
+                    <h3 class="fw-bold mb-0 text-success" id="stat-done"><?= $stats['done'] ?? 0 ?></h3>
                 </div>
             </div>
         </div>
-        <div class="col-md-3">
+        <div class="col">
             <div class="card card-stats shadow-sm bg-white border-start border-danger border-4">
                 <div class="card-body">
                     <div class="text-muted small fw-bold text-uppercase">Quá hạn</div>
-                    <h3 class="fw-bold mb-0 text-danger"><?= $stats['overdue'] ?? 0 ?></h3>
+                    <h3 class="fw-bold mb-0 text-danger" id="stat-overdue"><?= $stats['overdue'] ?? 0 ?></h3>
                 </div>
             </div>
         </div>
@@ -219,7 +167,7 @@ include '../../includes/header.php';
 
     <div class="card shadow-sm border-0 mb-4">
         <div class="card-body p-3">
-            <form method="GET" class="row g-2">
+            <form id="filter-form" class="row g-2">
                 <div class="col-md-5">
                     <div class="input-group">
                         <span class="input-group-text bg-white border-end-0"><i class="fa fa-search text-muted"></i></span>
@@ -240,7 +188,9 @@ include '../../includes/header.php';
                     </select>
                 </div>
                 <div class="col-md-3">
-                    <button type="submit" class="btn btn-primary w-100 fw-bold shadow-sm">LỌC DỮ LIỆU</button>
+                    <button type="submit" class="btn btn-primary w-100 fw-bold shadow-sm">
+                        <i class="fa fa-filter me-2"></i>LỌC DỮ LIỆU
+                    </button>
                 </div>
             </form>
         </div>
@@ -260,91 +210,21 @@ include '../../includes/header.php';
                         <th class="text-center py-3 pe-4">Thao tác</th>
                     </tr>
                 </thead>
-                <tbody class="bg-white">
-                    <?php
-                    $stt = $offset + 1;
-                    while ($row = mysqli_fetch_assoc($result)):
-                        $deadline = getDeadlineStatus($row['han_hoan_thanh'], $row['trang_thai_hien_thi']);
-                        $is_overdue = ($row['trang_thai_hien_thi'] == 'Quá hạn');
-                        $is_done = ($row['trang_thai_hien_thi'] == 'Đã hoàn thành');
-
-                        $badge_color = "bg-light text-dark border";
-                        if ($row['trang_thai_hien_thi'] == 'Đang thực hiện') $badge_color = "bg-primary text-white";
-                        if ($is_done) $badge_color = "bg-success text-white";
-                        if ($is_overdue) $badge_color = "bg-danger text-white";
-                    ?>
-                        <tr class="<?= $is_overdue ? 'bg-priority' : '' ?>">
-                            <td class="text-center text-muted fw-bold"><?= $stt++ ?></td>
-                            <td class="px-3">
-                                <div class="<?= $is_done ? 'fw-normal' : 'fw-bold' ?> <?= $is_overdue ? 'text-danger' : 'text-dark' ?>">
-                                    <?= htmlspecialchars($row['ten_cong_viec']) ?>
-                                    <?php if ($is_overdue): ?> <i class="fa fa-exclamation-triangle ms-1"></i> <?php endif; ?>
-                                </div>
-                                <div class="small text-muted text-truncate" style="max-width: 350px;">
-                                    <?= mb_substr(strip_tags($row['mo_ta']), 0, 80) ?>...
-                                </div>
-                            </td>
-                            <td class="text-center">
-                                <span class="small text-secondary">
-                                    <i class="fa-regular fa-user me-1 text-primary"></i><?= htmlspecialchars($row['nguoi_lam']) ?>
-                                </span>
-                            </td>
-                            <td class="text-center">
-                                <div class="<?= $deadline['class'] ?> small mb-1">
-                                    <i class="fa-regular fa-calendar me-1"></i>
-                                    <?= date('d/m/Y', strtotime($row['han_hoan_thanh'])) ?>
-                                </div>
-                                <?php if ($deadline['alert']): ?>
-                                    <span class="badge bg-<?= $deadline['alert'] ?> animate-pulse shadow-sm" style="font-size: 0.65rem;">
-                                        <?= $deadline['text'] ?>
-                                    </span>
-                                <?php endif; ?>
-                            </td>
-                            <td class="text-center">
-                                <span class="badge <?= $badge_color ?> rounded-pill px-3 py-2" style="font-size: 0.75rem;">
-                                    <?= $row['trang_thai_hien_thi'] ?>
-                                </span>
-                            </td>
-                            <td class="text-center pe-4">
-                                <div class="btn-group shadow-sm">
-                                    <a href="detail.php?id=<?= $row['id'] ?>" class="btn btn-sm btn-outline-primary"><i class="fa fa-eye"></i></a>
-                                    <?php if ($role === 'admin'): ?>
-                                        <a href="edit.php?id=<?= $row['id'] ?>" class="btn btn-sm btn-outline-warning"><i class="fa fa-edit"></i></a>
-                                        <a href="javascript:void(0)" onclick="confirmDelete(<?= $row['id'] ?>)" class="btn btn-sm btn-outline-danger">
-                                            <i class="fa fa-trash"></i>
-                                        </a>
-                                    <?php endif; ?>
-                                </div>
-                            </td>
-                        </tr>
-                    <?php endwhile; ?>
+                <tbody id="data-table-body" class="bg-white">
                 </tbody>
             </table>
+        </div>
+        <div id="pagination-container">
         </div>
     </div>
 </div>
 
 <script>
-    const Toast = Swal.mixin({
-        toast: true,
-        position: 'top-end',
-        showConfirmButton: false,
-        timer: 3000,
-        timerProgressBar: true
-    });
-
     $(document).ready(function() {
         var searchTimer;
 
-        <?php if (isset($_SESSION['success'])): ?>
-            Toast.fire({
-                icon: 'success',
-                title: '<?= $_SESSION['success'] ?>'
-            });
-            <?php unset($_SESSION['success']); ?>
-        <?php endif; ?>
-
-        function fetchData() {
+        // Hàm gọi AJAX chính
+        function fetchData(page = 1) {
             var keyword = $('#search-input').val();
             var status = $('#status-filter').val();
 
@@ -356,29 +236,54 @@ include '../../includes/header.php';
                 type: 'POST',
                 data: {
                     keyword: keyword,
-                    status_filter: status
+                    status_filter: status,
+                    page: page
                 },
-                success: function(data) {
+                dataType: 'json',
+                success: function(res) {
                     $('#loading-bar').css('width', '100%');
-                    $('tbody').html(data);
+
+                    // Cập nhật bảng và phân trang
+                    $('#data-table-body').html(res.table);
+                    $('#pagination-container').html(res.pagination);
+
                     $('tbody').animate({
                         opacity: 1
                     }, 200);
                     setTimeout(() => {
                         $('#loading-bar').css('width', '0');
                     }, 500);
+                },
+                error: function() {
+                    $('#loading-bar').css('width', '0');
+                    $('tbody').css('opacity', '1');
                 }
             });
         }
 
-        $('#search-input').on('keyup', function() {
-            clearTimeout(searchTimer);
-            searchTimer = setTimeout(fetchData, 300);
+        // BẮT SỰ KIỆN SUBMIT FORM (Nhấn nút Lọc hoặc phím Enter)
+        $('#filter-form').on('submit', function(e) {
+            e.preventDefault(); // Chặn load lại trang
+            fetchData(1); // Thực hiện lọc từ trang 1
         });
 
-        $('#status-filter').on('change', fetchData);
+        // Tự động lọc khi gõ phím (Live search sau 400ms)
+        $('#search-input').on('keyup', function() {
+            clearTimeout(searchTimer);
+            searchTimer = setTimeout(() => fetchData(1), 400);
+        });
+
+        // Tự động lọc khi thay đổi trạng thái trong Dropdown
+        $('#status-filter').on('change', () => fetchData(1));
+
+        // Xuất hàm ra phạm vi global để nút phân trang có thể gọi
+        window.fetchData = fetchData;
+
+        // Tải dữ liệu lần đầu khi vào trang
+        fetchData(1);
     });
 
+    // Hàm xác nhận xóa công việc
     function confirmDelete(id) {
         Swal.fire({
             title: 'Xác nhận xóa?',
