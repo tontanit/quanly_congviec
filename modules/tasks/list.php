@@ -210,7 +210,7 @@ include '../../includes/header.php';
         </div>
     </div>
 
-    <div class="card shadow-sm border-0">
+    <div class="card shadow-sm border-0 position-relative">
         <div id="loading-bar"></div>
         <div class="table-responsive">
             <table class="table align-middle mb-0">
@@ -237,12 +237,13 @@ include '../../includes/header.php';
     $(document).ready(function() {
         var searchTimer;
 
-        // Hàm gọi AJAX chính
         function fetchData(page = 1) {
-            var keyword = $('#search-input').val();
+            // .trim() để loại bỏ khoảng trắng thừa khi tìm kiếm
+            var keyword = $('#search-input').val().trim();
             var status = $('#status-filter').val();
 
-            $('#loading-bar').css('width', '30%');
+            // .stop() để dừng các hiệu ứng cũ nếu người dùng thao tác nhanh
+            $('#loading-bar').stop().css('width', '30%');
             $('tbody').css('opacity', '0.5');
 
             $.ajax({
@@ -255,45 +256,46 @@ include '../../includes/header.php';
                 },
                 dataType: 'json',
                 success: function(res) {
-                    $('#loading-bar').css('width', '100%');
+                    $('#loading-bar').stop().animate({
+                        width: '100%'
+                    }, 200);
 
-                    // Cập nhật bảng và phân trang
                     $('#data-table-body').html(res.table);
                     $('#pagination-container').html(res.pagination);
 
                     $('tbody').animate({
                         opacity: 1
                     }, 200);
+
                     setTimeout(() => {
                         $('#loading-bar').css('width', '0');
                     }, 500);
                 },
-                error: function() {
+                error: function(xhr) {
+                    // Xử lý khi có lỗi kết nối hoặc server
+                    console.error("Lỗi hệ thống:", xhr.responseText);
                     $('#loading-bar').css('width', '0');
                     $('tbody').css('opacity', '1');
                 }
             });
         }
 
-        // BẮT SỰ KIỆN SUBMIT FORM (Nhấn nút Lọc hoặc phím Enter)
+        // Xử lý Form Submit (Enter hoặc Click nút Lọc)
         $('#filter-form').on('submit', function(e) {
-            e.preventDefault(); // Chặn load lại trang
-            fetchData(1); // Thực hiện lọc từ trang 1
+            e.preventDefault();
+            clearTimeout(searchTimer); // Hủy bộ đếm Live Search nếu nhấn Enter ngay
+            fetchData(1);
         });
 
-        // Tự động lọc khi gõ phím (Live search sau 400ms)
+        // Live search sau 400ms
         $('#search-input').on('keyup', function() {
             clearTimeout(searchTimer);
             searchTimer = setTimeout(() => fetchData(1), 400);
         });
 
-        // Tự động lọc khi thay đổi trạng thái trong Dropdown
         $('#status-filter').on('change', () => fetchData(1));
 
-        // Xuất hàm ra phạm vi global để nút phân trang có thể gọi
         window.fetchData = fetchData;
-
-        // Tải dữ liệu lần đầu khi vào trang
         fetchData(1);
     });
 
