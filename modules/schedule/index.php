@@ -18,51 +18,15 @@ include '../../includes/header.php';
         margin-bottom: 2px !important;
         padding: 3px 5px !important;
         box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-        transition: transform 0.1s ease;
     }
 
-    .fc-event:hover {
-        transform: scale(1.02);
-        z-index: 5;
-    }
-
+    /* Ép nội dung tự xuống dòng, không bị ẩn bớt */
     .fc-daygrid-event {
         white-space: normal !important;
         display: block !important;
     }
 
-    /* 4. Đánh dấu màu sắc theo loại hình - CODE BỔ SUNG */
-    .bg-event-hop {
-        background-color: #ef4444 !important;
-        border-left: 4px solid #991b1b !important;
-    }
-
-    .bg-event-cong-tac {
-        background-color: #3b82f6 !important;
-        border-left: 4px solid #1e40af !important;
-    }
-
-    .bg-event-tiep-khach {
-        background-color: #10b981 !important;
-        border-left: 4px solid #065f46 !important;
-    }
-
-    .bg-event-khac {
-        background-color: #64748b !important;
-        border-left: 4px solid #334155 !important;
-    }
-
-    .event-type-tag {
-        font-size: 0.6rem;
-        background: rgba(0, 0, 0, 0.2);
-        padding: 1px 4px;
-        border-radius: 3px;
-        margin-right: 5px;
-        font-weight: 800;
-        color: #fff;
-        text-transform: uppercase;
-    }
-
+    /* Tùy chỉnh vùng chứa nội dung bên trong sự kiện */
     .event-leader-tag {
         font-size: 0.7rem;
         font-weight: 800;
@@ -70,7 +34,6 @@ include '../../includes/header.php';
         border-bottom: 1px solid rgba(255, 255, 255, 0.3);
         margin-bottom: 2px;
         display: block;
-        color: #fff;
     }
 
     .event-job-title {
@@ -78,7 +41,6 @@ include '../../includes/header.php';
         font-weight: 500;
         line-height: 1.3;
         display: block;
-        color: #fff;
     }
 
     /* 2. Cấu hình chung cho lịch */
@@ -94,105 +56,20 @@ include '../../includes/header.php';
         color: #0d6efd;
         font-weight: 800 !important;
     }
-
-    /* 3. CSS cho cụm lọc ngày và xuất file */
-    .export-filter-group {
-        background: #ffffff;
-        border: 1px solid #dee2e6;
-        border-radius: 8px;
-        overflow: hidden;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-    }
-
-    .export-filter-group .input-group-text {
-        background-color: #f8f9fa;
-        color: #6c757d;
-        font-weight: 600;
-        font-size: 0.75rem;
-        border: none;
-        padding: 0 10px;
-    }
-
-    .export-filter-group input[type="date"] {
-        border: none;
-        font-size: 0.85rem;
-        color: #495057;
-        padding: 5px;
-        width: 135px;
-    }
-
-    .export-filter-group .btn-export {
-        background: #fff;
-        border: none;
-        border-left: 1px solid #dee2e6;
-        padding: 5px 12px;
-        transition: all 0.2s;
-    }
-
-    .export-filter-group .btn-export:hover {
-        background: #f8f9fa;
-    }
-
-    /* Fix hiển thị rõ nội dung khi hover ở chế độ Danh sách */
-
-    .fc-list-event:hover {
-        background-color: #e9f2ff !important;
-    }
-
-    .fc-list-event:hover td {
-        color: #0d6efd !important;
-    }
-
-    .fc-list-event:hover .event-type-tag,
-    .fc-list-event:hover .event-leader-tag,
-    .fc-list-event:hover .event-job-title {
-        color: #0d6efd !important;
-    }
-
-    .fc-list-event-title,
-    .fc-list-event-time {
-        color: #212529 !important;
-    }
-
-    .fc-list-event-dot {
-        border-color: #0d6efd !important;
-    }
 </style>
 
 <div class="container-fluid py-4">
     <div class="row mb-4 align-items-center">
-        <div class="col-xl-4 col-lg-3">
-            <h3 class="fw-bold mb-0 text-primary">
-                <i class="fa fa-calendar-check me-2"></i>LỊCH CÔNG TÁC
-            </h3>
+        <div class="col-md-6">
+            <h3 class="fw-bold mb-0"><i class="fa fa-calendar-check text-primary me-2"></i>LỊCH CÔNG TÁC</h3>
         </div>
-
-        <div class="col-xl-5 col-lg-6">
-            <form action="export_excel.php" method="GET" class="d-flex justify-content-end align-items-center w-100">
-                <div class="input-group input-group-sm export-filter-group shadow-sm">
-                    <span class="input-group-text">TỪ</span>
-                    <input type="date" name="from_date" value="<?php echo date('Y-m-01'); ?>" required>
-
-                    <span class="input-group-text border-start">ĐẾN</span>
-                    <input type="date" name="to_date" value="<?php echo date('Y-m-t'); ?>" required>
-
-                    <button type="submit" class="btn-export text-success" title="Xuất Excel">
-                        <i class="fa fa-file-excel fa-lg"></i>
-                    </button>
-                    <button type="submit" formaction="export_word.php" class="btn-export text-primary" title="Xuất Word">
-                        <i class="fa fa-file-word fa-lg"></i>
-                    </button>
-                </div>
-            </form>
-        </div>
-
-        <div class="col-xl-3 col-lg-3 text-end">
+        <div class="col-md-6 text-end">
             <?php if ($_SESSION['role'] == 'admin'): ?>
-                <a href="trash.php" class="btn btn-outline-secondary btn-sm fw-bold shadow-sm me-1" title="Thùng rác">
-                    <i class="fa fa-trash-alt"></i>
+                <a href="trash.php" class="btn btn-outline-secondary shadow-sm fw-bold me-2">
+                    <i class="fa fa-trash-alt me-1"></i> THÙNG RÁC
                 </a>
-                <button class="btn btn-primary btn-sm fw-bold shadow-sm" id="btnAddNew">
-                    <i class="fa fa-plus-circle me-1"></i> THÊM MỚI
+                <button class="btn btn-primary shadow-sm fw-bold" id="btnAddNew">
+                    <i class="fa fa-plus-circle me-1"></i> THÊM LỊCH MỚI
                 </button>
             <?php endif; ?>
         </div>
@@ -201,14 +78,6 @@ include '../../includes/header.php';
     <div class="card shadow-sm border-0">
         <div class="card-body p-0">
             <div id='calendar'></div>
-        </div>
-        <div class="card-footer bg-white border-top-0 py-3">
-            <div class="d-flex flex-wrap gap-4 justify-content-center">
-                <div class="d-flex align-items-center"><span class="badge bg-danger me-2" style="width:12px; height:12px; border-radius:3px"></span> <small class="fw-bold">Họp</small></div>
-                <div class="d-flex align-items-center"><span class="badge bg-primary me-2" style="width:12px; height:12px; border-radius:3px"></span> <small class="fw-bold">Công tác</small></div>
-                <div class="d-flex align-items-center"><span class="badge bg-success me-2" style="width:12px; height:12px; border-radius:3px"></span> <small class="fw-bold">Tiếp khách</small></div>
-                <div class="d-flex align-items-center"><span class="badge bg-secondary me-2" style="width:12px; height:12px; border-radius:3px"></span> <small class="fw-bold">Khác</small></div>
-            </div>
         </div>
     </div>
 </div>
@@ -271,158 +140,236 @@ include '../../includes/header.php';
     </div>
 </div>
 
+
 <script>
     document.addEventListener('DOMContentLoaded', function() {
+
+        const USER_ROLE = "<?= $_SESSION['role'] ?>";
         const calendarEl = document.getElementById('calendar');
+        const modal = new bootstrap.Modal(document.getElementById('eventModal'));
+
+        /* =========================
+           1. KHỞI TẠO CALENDAR
+        ========================== */
 
         const calendar = new FullCalendar.Calendar(calendarEl, {
             initialView: 'dayGridMonth',
             locale: 'vi',
             timeZone: 'Asia/Ho_Chi_Minh',
+            height: 'auto',
+            navLinks: true,
+            selectable: USER_ROLE === 'admin',
+
             headerToolbar: {
                 left: 'prev,next today',
                 center: 'title',
                 right: 'dayGridMonth,timeGridWeek,listWeek'
             },
-            buttonText: {
-                today: 'Hôm nay',
-                month: 'Tháng',
-                week: 'Tuần',
-                list: 'Danh sách'
-            },
-            events: 'get_events.php',
 
-            // CODE BỔ SUNG: Gán class màu sắc dựa trên loại hình
-            eventDidMount: function(info) {
-                const type = info.event.extendedProps.type;
-                if (type === 'Họp') info.el.classList.add('bg-event-hop');
-                else if (type === 'Công tác') info.el.classList.add('bg-event-cong-tac');
-                else if (type === 'Tiếp khách') info.el.classList.add('bg-event-tiep-khach');
-                else info.el.classList.add('bg-event-khac');
+            events: {
+                url: 'get_events.php',
+                failure: function() {
+                    Swal.fire('Lỗi', 'Không thể tải dữ liệu lịch.', 'error');
+                }
             },
 
-            // CODE BỔ SUNG: Cấu trúc nội dung hiển thị (Gồm Leader và Icon)
+            /* =========================
+               2. HIỂN THỊ SỰ KIỆN
+            ========================== */
             eventContent: function(arg) {
-                let leader = arg.event.extendedProps.leader || 'N/A';
-                let type = arg.event.extendedProps.type || 'Khác';
-                let fullTitle = arg.event.title;
-                let cleanTitle = fullTitle.includes('] ') ? fullTitle.split('] ').pop() : fullTitle;
+                const leader = arg.event.extendedProps.leader ?? 'N/A';
+                const fullTitle = arg.event.title;
+                const cleanTitle = fullTitle.includes('] ') ?
+                    fullTitle.split('] ').pop() :
+                    fullTitle;
 
-                let typeIcon = type === 'Họp' ? '<i class="fa fa-comments me-1"></i>' : '<i class="fa fa-briefcase me-1"></i>';
-
-                let container = document.createElement('div');
+                const container = document.createElement('div');
                 container.innerHTML = `
-                    <div class="d-flex align-items-center mb-1" style="overflow:hidden">
-                        <span class="event-type-tag">${type}</span>
-                        <span class="event-leader-tag mb-0 border-0" style="white-space:nowrap"><i class="fa fa-user-circle me-1"></i>${leader}</span>
-                    </div>
-                    <span class="event-job-title">${typeIcon}${cleanTitle}</span>
-                `;
+                <span class="event-leader-tag">
+                    <i class="fa fa-user-circle me-1"></i>${leader}
+                </span>
+                <span class="event-job-title">${cleanTitle}</span>
+            `;
+
                 return {
                     domNodes: [container]
                 };
             },
 
+            /* =========================
+               3. CLICK EVENT
+            ========================== */
             eventClick: function(info) {
-                <?php if ($_SESSION['role'] == 'admin'): ?>
-                    openModalForEdit(info.event);
-                <?php else: ?>
-                    Swal.fire({
-                        title: `<span class="text-primary">${info.event.title}</span>`,
-                        html: `<div class="text-start border-top pt-2">
-                           <p><b>📍 Địa điểm:</b> ${info.event.extendedProps.location}</p>
-                           <p><b>⏰ Thời gian:</b> ${info.event.start.toLocaleString('vi-VN')}</p>
-                           <p><b>📝 Chi tiết:</b> ${info.event.extendedProps.description || 'Không có'}</p>
-                           </div>`,
-                        icon: 'info'
-                    });
-                <?php endif; ?>
+                if (USER_ROLE === 'admin') {
+                    openEditModal(info.event);
+                } else {
+                    viewOnlyPopup(info.event);
+                }
             }
         });
 
         calendar.render();
 
-        $('#btnAddNew').on('click', function() {
-            $('#eventForm')[0].reset();
-            $('#event_id').val('');
-            $('#modalTitle').text('THÊM LỊCH CÔNG TÁC MỚI');
-            $('#btnDelete').hide();
-            $('#eventModal').modal('show');
-        });
 
-        function openModalForEdit(event) {
+        /* =========================
+           4. MODAL FUNCTIONS
+        ========================== */
+
+        function openEditModal(event) {
+
             $('#event_id').val(event.id);
-            let title = event.title.includes('] ') ? event.title.split('] ').pop() : event.title;
+
+            const title = event.title.includes('] ') ?
+                event.title.split('] ').pop() :
+                event.title;
+
             $('input[name="tieu_de"]').val(title);
-
-            if (event.startStr) $('#bat_dau').val(event.startStr.substring(0, 16));
-            if (event.endStr) $('#ket_thuc').val(event.endStr.substring(0, 16));
-
-            $('input[name="dia_diem"]').val(event.extendedProps.location);
-            $('select[name="loai_lich"]').val(event.extendedProps.type);
-            $('textarea[name="noi_dung"]').val(event.extendedProps.description);
+            $('#bat_dau').val(formatDateTime(event.start));
+            $('#ket_thuc').val(formatDateTime(event.end ?? event.start));
+            $('input[name="dia_diem"]').val(event.extendedProps.location ?? '');
+            $('select[name="loai_lich"]').val(event.extendedProps.type ?? '');
+            $('textarea[name="noi_dung"]').val(event.extendedProps.description ?? '');
 
             $('#modalTitle').text('CHỈNH SỬA LỊCH CÔNG TÁC');
             $('#btnDelete').show();
-            $('#eventModal').modal('show');
+
+            modal.show();
         }
+
+        function viewOnlyPopup(event) {
+            Swal.fire({
+                title: `<span class="text-primary">${event.title}</span>`,
+                html: `
+                <div class="text-start border-top pt-2">
+                    <p><b>📍 Địa điểm:</b> ${event.extendedProps.location ?? ''}</p>
+                    <p><b>⏰ Thời gian:</b> ${event.start.toLocaleString('vi-VN')}</p>
+                    <p><b>📝 Chi tiết:</b> ${event.extendedProps.description ?? 'Không có'}</p>
+                </div>
+            `,
+                icon: 'info'
+            });
+        }
+
+
+        /* =========================
+           5. THÊM MỚI
+        ========================== */
+
+        $('#btnAddNew').on('click', function() {
+            resetForm();
+            $('#modalTitle').text('THÊM LỊCH CÔNG TÁC MỚI');
+            $('#btnDelete').hide();
+            modal.show();
+        });
+
+
+        /* =========================
+           6. SAVE EVENT
+        ========================== */
 
         $('#eventForm').on('submit', function(e) {
             e.preventDefault();
-            $.post('save_event.php', $(this).serialize(), function(res) {
-                try {
-                    const data = JSON.parse(res);
+
+            const btn = $(this).find('button[type="submit"]');
+            btn.prop('disabled', true).text('Đang lưu...');
+
+            $.post('save_event.php', $(this).serialize())
+                .done(function(res) {
+
+                    let data;
+                    try {
+                        data = typeof res === 'object' ? res : JSON.parse(res);
+                    } catch {
+                        Swal.fire('Lỗi', 'Phản hồi không hợp lệ.', 'error');
+                        return;
+                    }
+
                     if (data.status === 'success') {
-                        $('#eventModal').modal('hide');
+                        modal.hide();
                         calendar.refetchEvents();
                         Swal.fire('Thành công', data.message, 'success');
                     } else {
                         Swal.fire('Lỗi', data.message, 'error');
                     }
-                } catch (e) {
-                    console.error("Lỗi parse JSON:", res);
-                }
-            });
+                })
+                .fail(function() {
+                    Swal.fire('Lỗi', 'Không thể kết nối máy chủ.', 'error');
+                })
+                .always(function() {
+                    btn.prop('disabled', false).text('LƯU THÔNG TIN');
+                });
         });
 
+
+        /* =========================
+           7. DELETE EVENT
+        ========================== */
+
         $('#btnDelete').on('click', function() {
+
             const id = $('#event_id').val();
+
             Swal.fire({
                 title: 'Xác nhận xóa?',
                 text: "Lịch sẽ được chuyển vào thùng rác!",
                 icon: 'warning',
                 showCancelButton: true,
                 confirmButtonColor: '#d33',
-                confirmButtonText: 'Đồng ý xóa'
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: 'Đồng ý xóa',
+                cancelButtonText: 'Hủy'
             }).then((result) => {
-                if (result.isConfirmed) {
-                    $.ajax({
-                        url: 'delete_event.php',
-                        type: 'POST',
-                        data: {
-                            id: id
-                        },
-                        success: function(res) {
-                            let data = typeof res === 'object' ? res : JSON.parse(res);
-                            if (data.status === 'success') {
-                                $('#eventModal').modal('hide');
-                                $('.modal-backdrop').remove();
-                                calendar.refetchEvents();
-                                Swal.fire({
-                                    title: 'Đã xóa!',
-                                    icon: 'success',
-                                    timer: 1500,
-                                    showConfirmButton: false
-                                });
-                            } else {
-                                Swal.fire('Lỗi', data.message, 'error');
-                            }
+
+                if (!result.isConfirmed) return;
+
+                $.post('delete_event.php', {
+                        id: id
+                    })
+                    .done(function(res) {
+
+                        let data = typeof res === 'object' ? res : JSON.parse(res);
+
+                        if (data.status === 'success') {
+                            modal.hide();
+                            resetForm();
+                            calendar.refetchEvents();
+
+                            Swal.fire({
+                                title: 'Đã xóa!',
+                                text: data.message,
+                                icon: 'success',
+                                timer: 1500,
+                                showConfirmButton: false
+                            });
+                        } else {
+                            Swal.fire('Lỗi', data.message, 'error');
                         }
+                    })
+                    .fail(function() {
+                        Swal.fire('Lỗi', 'Không thể kết nối máy chủ', 'error');
                     });
-                }
             });
         });
+
+
+        /* =========================
+           8. UTILITIES
+        ========================== */
+
+        function resetForm() {
+            $('#eventForm')[0].reset();
+            $('#event_id').val('');
+        }
+
+        function formatDateTime(date) {
+            if (!date) return '';
+            const d = new Date(date);
+            d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+            return d.toISOString().slice(0, 16);
+        }
+
     });
 </script>
+
 
 <?php include '../../includes/footer.php'; ?>
